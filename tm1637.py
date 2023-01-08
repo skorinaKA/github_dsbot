@@ -18,6 +18,8 @@ import time
 import subprocess
 from time import time, sleep, localtime
 from periphery import GPIO
+from io import StringIO
+from contextlib import redirect_stdout
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -137,8 +139,14 @@ class TM1637:
 		self.gpio_dio = GPIO(self.dio, "out")
 
 
-def show_ip_address(tm):
-	ipaddr = subprocess.check_output("hostname -I", shell=True).strip()
+def show_ip_address(tm,tmp):
+	print(tmp)
+	ipaddr = 'smth'
+	if tmp==0:
+		ipaddr = subprocess.check_output("hostname -I", shell=True).strip()
+	else:
+		ipaddr = tmp
+	print(ipaddr)
 	#print("ipaddr={} {}".format(type(ipaddr), ipaddr))
 	if (type(ipaddr) is bytes):
 		ipaddr=ipaddr.decode('utf-8')
@@ -226,9 +234,12 @@ def show_number(tm,num):
 				d2 = tm.digit_to_segment[nums[i-1] // 10 % 10]
 				tmp1 = True
 			d3 = tm.digit_to_segment[nums[i-1] % 10]
+			tm.set_segments([d0,0x80 + d1, d2, d3])
+			sleep(1)
 			tm.set_segments([d0, d1, d2, d3])
+			sleep(1)
 			tmp1 = True;
-			sleep(2)
+
 		
 		tm.set_segments([0, 0, 0, 0])
 
@@ -257,7 +268,7 @@ async def dark(ctx,arg1):
 	print(arg1)
 	if(arg1=="IP"):	
 		print(arg1)
-		show_ip_address(tm)
+		show_ip_address(tm,0)
 		await ctx.send('Bot set IP on 4-digit display')
 	elif(arg1=="TIME"):
 		print(arg1)
@@ -274,15 +285,17 @@ async def disp(ctx,arg1,arg2):
 
 @client.command()
 async def show(ctx,arg1):
-	await ctx.send('HAH! YOU LITTLE MONKEY!')
+	#await ctx.send('HAH! YOU LITTLE MONKEY!')
 	if ctx.author == client.user:
 		return
 	
 	if (arg1=="IP"):
 		print(arg1)
-		ip = str(publicip.get())
-		ip
-		await ctx.send("The server ip is " + ip)
+		with StringIO() as buffer, redirect_stdout(buffer):
+			publicip.get()
+			ip = buffer.getvalue().split()[0]
+			show_ip_address(tm,ip)
+		#await ctx.send("The server ip is " + ip)
 
 
 @client.command()
@@ -304,7 +317,7 @@ async def test(ctx, member: discord.Member):
 	#except KeyboardInterrupt:
 	#	pass
 
-client.run('MTA0Mjc1NDUzOTA3OTYwNjI4Mg.GRYfAp.cddaBt2Bnxy1z8Q4fWyoCSJVS5UytWSiqMZRY8')
+client.run('')
 
 print('cleanup')
 gpio_clk.close()
